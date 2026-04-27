@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BIST Tarama</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0a0f1e;
+    color: #c8d8f0;
+    font-family: monospace;
+    padding: 16px;
+    min-height: 100vh;
+  }
+  h1 {
+    font-size: 18px;
+    color: #00d4ff;
+    margin-bottom: 4px;
+  }
+  .subtitle {
+    font-size: 11px;
+    color: #4a6080;
+    margin-bottom: 16px;
+  }
+  .filters {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .filter-btn {
+    background: #0c1120;
+    border: 1px solid #1a2540;
+    border-radius: 20px;
+    padding: 6px 14px;
+    color: #c8d8f0;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .filter-btn.active {
+    background: #00d4ff;
+    color: #000;
+    font-weight: bold;
+    border-color: #00d4ff;
+  }
+  .search {
+    width: 100%;
+    background: #0c1120;
+    border: 1px solid #1a2540;
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: #c8d8f0;
+    font-size: 13px;
+    margin-bottom: 14px;
+    outline: none;
+  }
+  .card {
+    background: #0c1120;
+    border: 1px solid #1a2540;
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 10px;
+  }
+  .card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .sembol {
+    font-size: 16px;
+    font-weight: bold;
+    color: #fff;
+  }
+  .fiyat {
+    font-size: 15px;
+    font-weight: bold;
+    color: #fff;
+  }
+  .badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: bold;
+    margin-right: 6px;
+  }
+  .strateji { background: rgba(0,212,255,0.15); color: #00d4ff; }
+  .degisim-pos { color: #00e676; }
+  .degisim-neg { color: #ff3d57; }
+  .aciklama { font-size: 11px; color: #4a6080; margin-top: 6px; }
+  .meta {
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
+    font-size: 11px;
+    color: #4a6080;
+  }
+  .meta span { color: #c8d8f0; }
+  .guven-YH { color: #00e676; }
+  .guven-Y  { color: #00d4ff; }
+  .guven-O  { color: #f0b429; }
+  .empty {
+    text-align: center;
+    padding: 60px 0;
+    color: #4a6080;
+    font-size: 13px;
+  }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .stat {
+    background: #0c1120;
+    border: 1px solid #1a2540;
+    border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+  }
+  .stat-val { font-size: 22px; font-weight: bold; color: #00d4ff; }
+  .stat-lbl { font-size: 10px; color: #4a6080; margin-top: 2px; }
+  .yukleniyor {
+    text-align: center;
+    padding: 40px;
+    color: #00d4ff;
+    font-size: 14px;
+  }
+</style>
+</head>
+<body>
+
+<h1>📡 BIST Tarama</h1>
+<p class="subtitle" id="tarih">Yükleniyor...</p>
+
+<div class="stats">
+  <div class="stat">
+    <div class="stat-val" id="s-toplam">—</div>
+    <div class="stat-lbl">Toplam</div>
+  </div>
+  <div class="stat">
+    <div class="stat-val" id="s-yuksek">—</div>
+    <div class="stat-lbl">Yüksek Güven</div>
+  </div>
+  <div class="stat">
+    <div class="stat-val" id="s-hisse">—</div>
+    <div class="stat-lbl">Hisse</div>
+  </div>
+</div>
+
+<input class="search" id="ara" placeholder="🔍 Hisse ara..." oninput="filtrele()">
+
+<div class="filters" id="filtreler">
+  <button class="filter-btn active" onclick="setGuven('tumu',this)">Tümü</button>
+  <button class="filter-btn" onclick="setGuven('ÇOK YÜKSEK',this)">⚡ Çok Yüksek</button>
+  <button class="filter-btn" onclick="setGuven('YÜKSEK',this)">🔥 Yüksek</button>
+  <button class="filter-btn" onclick="setGuven('ORTA',this)">📊 Orta</button>
+</div>
+
+<div id="liste"><div class="yukleniyor">⏳ Veriler yükleniyor...</div></div>
+
+<script>
+// Telegram Mini App başlat
+if (window.Telegram && window.Telegram.WebApp) {
+  Telegram.WebApp.ready();
+  Telegram.WebApp.expand();
+}
+
+let tumSinyaller = [];
+let aktifGuven = 'tumu';
+
+// JSON dosyasını çek — kendi Vercel URL'ini buraya yazacaksın
+const JSON_URL = './sinyaller.json';
+
+async function veriYukle() {
+  try {
+    const r = await fetch(JSON_URL);
+    if (!r.ok) throw new Error('Dosya bulunamadı');
+    const data = await r.json();
+    tumSinyaller = data.sinyaller || [];
+
+    // Tarih
+    const tarih = new Date(data.tarama_tarihi);
+    document.getElementById('tarih').textContent =
+      'Son tarama: ' + tarih.toLocaleString('tr-TR');
+
+    // İstatistikler
+    document.getElementById('s-toplam').textContent = tumSinyaller.length;
+    document.getElementById('s-yuksek').textContent =
+      tumSinyaller.filter(s => s.guven === 'ÇOK YÜKSEK' || s.guven === 'YÜKSEK').length;
+    const benzersiz = new Set(tumSinyaller.map(s => s.sembol)).size;
+    document.getElementById('s-hisse').textContent = benzersiz;
+
+    render();
+  } catch(e) {
+    document.getElementById('liste').innerHTML =
+      '<div class="empty">⚠️ Veri yüklenemedi.<br>sinyaller.json dosyasını ekleyin.</div>';
+    document.getElementById('tarih').textContent = 'Veri bulunamadı';
+  }
+}
+
+function setGuven(g, btn) {
+  aktifGuven = g;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+function filtrele() { render(); }
+
+function render() {
+  const ara = document.getElementById('ara').value.toUpperCase();
+  let liste = tumSinyaller.filter(s => {
+    if (ara && !s.sembol.includes(ara)) return false;
+    if (aktifGuven !== 'tumu' && s.guven !== aktifGuven) return false;
+    return true;
+  });
+
+  if (liste.length === 0) {
+    document.getElementById('liste').innerHTML =
+      '<div class="empty">🔎 Sinyal bulunamadı.</div>';
+    return;
+  }
+
+  const guvenCls = { 'ÇOK YÜKSEK':'YH', 'YÜKSEK':'Y', 'ORTA':'O' };
+
+  document.getElementById('liste').innerHTML = liste.map(s => {
+    const pos = s.degisim_pct >= 0;
+    const gc  = guvenCls[s.guven] || 'O';
+    return `
+    <div class="card">
+      <div class="card-top">
+        <span class="sembol">${s.emoji || ''} ${s.sembol}</span>
+        <span class="fiyat">₺${s.fiyat.toFixed(2)}</span>
+      </div>
+      <span class="badge strateji">${s.strateji_kodu.replace(/_/g,' ')}</span>
+      <span class="guven-${gc}" style="font-size:11px;font-weight:bold">${s.guven}</span>
+      <div class="aciklama">${s.aciklama}</div>
+      <div class="meta">
+        <div>Değişim: <span class="${pos?'degisim-pos':'degisim-neg'}">${pos?'+':''}${s.degisim_pct.toFixed(2)}%</span></div>
+        <div>RSI: <span>${s.rsi}</span></div>
+        <div>Rel.H: <span>${s.rel_hacim}x</span></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+veriYukle();
+</script>
+</body>
+</html>
