@@ -1,0 +1,48 @@
+{
+  "tarama_tarihi": "2025-04-27T18:30:00",
+  "taranan_hisse_sayisi": 750,
+  "toplam_sinyal": 3,
+  "strateji_ozeti": {
+    "DIP_AVCISI": 1,
+    "GOLDEN_CROSS": 1,
+    "AKILLI_PARA": 1
+  },
+  "sinyaller": [
+    {
+      "sembol": "THYAO",
+      "tarih": "2025-04-27",
+      "strateji_kodu": "GOLDEN_CROSS",
+      "emoji": "✨",
+      "aciklama": "SMA50, SMA200'ü yukarı kesti!",
+      "guven": "ÇOK YÜKSEK",
+      "fiyat": 286.50,
+      "rsi": 58.2,
+      "degisim_pct": 2.3,
+      "rel_hacim": 3.1
+    },
+    {
+      "sembol": "GARAN",
+      "tarih": "2025-04-27",
+      "strateji_kodu": "DIP_AVCISI",
+      "emoji": "🌊",
+      "aciklama": "1 aylık düşüş %8.2, SMA200 üstü",
+      "guven": "YÜKSEK",
+      "fiyat": 74.05,
+      "rsi": 32.5,
+      "degisim_pct": -1.2,
+      "rel_hacim": 1.8
+    },
+    {
+      "sembol": "ASELS",
+      "tarih": "2025-04-27",
+      "strateji_kodu": "AKILLI_PARA",
+      "emoji": "💼",
+      "aciklama": "Relatif Hacim 2.8x – kurumsal ilgi",
+      "guven": "YÜKSEK",
+      "fiyat": 152.30,
+      "rsi": 61.4,
+      "degisim_pct": 3.7,
+      "rel_hacim": 2.8
+    }
+  ]
+}
