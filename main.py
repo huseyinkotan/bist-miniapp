@@ -84,7 +84,8 @@ def vwap(h,l,c,v,p=10):
 
 def tara_hisse(sym):
     try:
-        df=yf.download(f"{sym}.IS",period="2y",interval="1d",progress=False,auto_adjust=True)
+        # RAM tasarrufu için period 1 yıla indirildi (200 günlük ortalama için yeterli)
+        df=yf.download(f"{sym}.IS",period="1y",interval="1d",progress=False,auto_adjust=True)
         if df.empty or len(df)<210: return []
         if isinstance(df.columns,pd.MultiIndex): df.columns=df.columns.get_level_values(0)
         c=df["Close"].squeeze(); h=df["High"].squeeze()
@@ -137,7 +138,8 @@ def tara_hisse(sym):
 def tara():
     print(f"🔍 Tarama: {datetime.now().strftime('%d.%m.%Y %H:%M')}")
     liste=hisseler(); sonuc=[]
-    with ThreadPoolExecutor(max_workers=10) as ex:
+    # Render OOM çökmesini engellemek için thread sayısı 4'e düşürüldü
+    with ThreadPoolExecutor(max_workers=4) as ex:
         futs={ex.submit(tara_hisse,s):s for s in liste}
         for i,fut in enumerate(as_completed(futs),1):
             r=fut.result()
@@ -162,6 +164,10 @@ def get_sinyaller():
         "toplam_sinyal":0,"taranan_hisse_sayisi":0})
 
 def bot():
+    # Sistemin ayağa kalkması ve Render'ın onay vermesi için 30 saniye nefes payı
+    print("⏳ Sunucunun ayağa kalkması bekleniyor (30 sn)...")
+    time.sleep(30)
+    
     tara()
     schedule.every().day.at(SAAT).do(tara)
     while True:
